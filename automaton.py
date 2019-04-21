@@ -38,6 +38,13 @@ class DFA:
         self._ignoring = ignoring
 
     def consume(self, input):
+        '''
+        Consumes a character and transitions the DFA to the next state based
+        on the transition function.
+
+        Throws a BlockError exception if there's no mapping on the input
+        character for the current state.
+        '''
         if input not in alphabet:
             raise DFA.BlockError()
 
@@ -79,8 +86,6 @@ sign = set('+-')
 escapes = set('\'?\\ntrav')
 escapess = set('"?\\ntrav')
 whitespace = set('\n\t\r ')
-
-
 
 def transit(all:set, to:int):
     set_list = list(all)
@@ -170,8 +175,8 @@ tfunc = {
     46: {'E': 43, 'F': 44, 'L': 45, **transit(digits, 46), 'e': 47, 'f': 48, 'l': 49},
     47: {**transit(digits, 65), **transit(sign, 66)},
     51: {'\n': 50, **transit(nonl, 51)},
-    52: {'/': 67},
-    53: {**transit(noslash, 68)},
+    52: {**transit(nostar, 52), '/': 67, '*': 53},
+    53: {**transit(noslash, 68), '/': 67},
     54: {'U': 55, 'u': 56},
     57: {'L': 69},
     58: {'l': 70},
@@ -183,15 +188,67 @@ tfunc = {
     64: {'\'': 39, **transit(safe_char, 40), '\\': 41},
     65: {'F': 44, 'L': 45, **transit(digits, 73), 'f': 48, 'l': 49},
     66: {**transit(digits, 65)},
-    68: {'/': 67},
+    68: {'*': 53, **transit(nostar, 52)},
     71: {'L': 21, 'U': 22, **transit(hexas, 71), 'l': 24, 'u': 25},
     72: {'F': 44, 'L': 45, **transit(digits, 72), 'f': 48, 'l': 49},
     73: {'F': 44, 'L': 45, **transit(digits, 73), 'f': 48, 'l': 49}
 }
 sstate = 0
+
+def state2token(state): 
+    acc_states = list(zip(*accepting))[0]
+    acc_tokens = list(zip(*accepting))[1]
+    state_index = acc_states.index(state)
+    return acc_tokens[state_index]
+
+
+class Scanner :
+
+    class SyntaxError(Exception):
+
+        def __init__(self, pos):
+            self.pos = pos
+
+    def __init__(self, input:iter, dfa:DFA):
+        self._input = input
+        self._pos = 0
+        self._dfa = dfa
+        self._dfa.reset()
+
+
+    def gettoken(self):
+        acc_hist = []
+        last_acc_index = self._pos
+        for ci in range(self._pos, len(self._input)):
+            self._pos = ci
+            try:
+                print("fed {}".format(self._input[ci]))
+                dfa.consume(self._input[ci])
+                if dfa.isaccepting():
+                    last_acc_index = ci
+                    acc_hist.append(dfa.check())
+            except DFA.BlockError:
+                if dfa.isaccepting:
+                    self._pos = ci-1
+                    state = dfa.check()
+                    dfa.reset()
+                    return state2token(state)
+                else:
+                    if len(acc_hist) != 0:
+                        self._pos = last_acc_index+1
+                        return state2token(acc_hist.pop())
+                    else:
+                        raise SyntaxError(self._pos)
+
+        if dfa.isaccepting:
+            state = dfa.check()
+            dfa.reset()
+            return state2token(state)
+
+
 acc_states = list(zip(*accepting))[0]
 dfa = DFA(states, alphabet, whitespace, acc_states, tfunc, sstate)
 
 
-
+scanner = Scanner(r"/*OLALALALALAL*/", dfa)
         
