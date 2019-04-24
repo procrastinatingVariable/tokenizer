@@ -1,3 +1,5 @@
+import io
+import collections
 
 regexi = {
     "identifier": r"([a-zA-Z_]\w*)",
@@ -59,6 +61,9 @@ class DFA:
             self._curr_state = new_state
         
         return self
+
+    def setstate(self, state):
+        self._curr_state = state
 
     def isaccepting(self):
         return self._curr_state in self._accepting
@@ -202,6 +207,72 @@ def state2token(state):
     return acc_tokens[state_index]
 
 
+class DFAHistStack:
+
+    def __init__(self):
+        self._stack = []
+
+    def push(self, token, isaccepting = False):
+        self._stack.append((*token, isaccepting))
+
+    def pop(self):
+        return self._stack.pop()
+
+    def buildtoken(self):
+        try:
+            split_stack = list(zip(*self._stack))
+            values = split_stack[1]
+            lai = self.find_lastacc_index()
+            return ''.join(values[:lai+1])
+        except:
+            return None
+            
+    def find_lastacc_index(self):
+        split_stack = list(zip(*self._stack))
+        try :
+            acceptings = split_stack[2]
+        except:
+            acceptings = []
+        return len(acceptings) - acceptings[::-1].index(True) - 1
+
+    def clear(self):
+        self._stack.clear()
+
+    def stack(self):
+        return self._stack
+
+class PushbackBuffer():
+
+    def __init__(self, source):
+        self._deque = collections.deque()
+        self._source = source
+        self.feed(next(self._source))
+
+    def feed(self, iter):
+        self._deque.extend(iter)
+
+    def pushback(self, iter):
+        self._deque.extendleft(reversed(iter))
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        try:
+            return self._deque.popleft()
+        except:
+            return self._tryfromsource()
+            
+    def _tryfromsource(self):
+        try:
+            self.feed(next(self._source))
+            return self._deque.popleft()
+        except:
+            raise StopIteration()
+
+
+
+
 class Scanner :
 
     class SyntaxError(Exception):
@@ -210,45 +281,56 @@ class Scanner :
             self.pos = pos
 
     def __init__(self, input:iter, dfa:DFA):
-        self._input = input
-        self._pos = 0
         self._dfa = dfa
         self._dfa.reset()
 
+        self._dfastack = DFAHistStack()
+        self._buffer = PushbackBuffer(input)
+
 
     def gettoken(self):
-        acc_hist = []
-        last_acc_index = self._pos
-        for ci in range(self._pos, len(self._input)):
-            self._pos = ci
+        for c in self._buffer:
             try:
-                print("fed {}".format(self._input[ci]))
-                dfa.consume(self._input[ci])
-                if dfa.isaccepting():
-                    last_acc_index = ci
-                    acc_hist.append(dfa.check())
-            except DFA.BlockError:
-                if dfa.isaccepting:
-                    self._pos = ci-1
-                    state = dfa.check()
-                    dfa.reset()
-                    return state2token(state)
-                else:
-                    if len(acc_hist) != 0:
-                        self._pos = last_acc_index+1
-                        return state2token(acc_hist.pop())
-                    else:
-                        raise SyntaxError(self._pos)
+                self._dfa.consume(c)
+                isaccepting = self._dfa.isaccepting()
+                self._dfastack.push((self._dfa.check(), c), isaccepting)
+            except:
+                self._buffer.pushback(c)
+                break
 
-        if dfa.isaccepting:
-            state = dfa.check()
+        if self._dfa.isaccepting():
+            token = self._dfastack.buildtoken()
+        else:
+            token = self._dfastack.buildtoken()
+            self._pushback_noacc_stack()
+
+        if token:
             dfa.reset()
-            return state2token(state)
+            self._dfastack.clear()
+            return token
+        else:
+            raise SyntaxError()
+
+    def _pushback_noacc_stack(self):
+        stack = self._dfastack.stack()
+        try:
+            lai = self._dfastack.find_lastacc_index()
+        except ValueError:
+            lai = -1
+        for i in reversed(stack[lai+1:]):
+            self._buffer.pushback(i[1])
+            self._dfa.setstate(i[0])
+            self._dfastack.pop()
+
+
 
 
 acc_states = list(zip(*accepting))[0]
-dfa = DFA(states, alphabet, whitespace, acc_states, tfunc, sstate)
+dfa = DFA(states, alphabet, set(), acc_states, tfunc, sstate)
 
-
-scanner = Scanner(r"/*OLALALALALAL*/", dfa)
+f = open('in.c', 'r')
+scanner = Scanner(f, dfa)
+while (True): 
+    tok = scanner.gettoken()
+    print(tok)
         
