@@ -1,5 +1,6 @@
 import io
 import collections
+import sys
 
 regexi = {
     "identifier": r"([a-zA-Z_]\w*)",
@@ -105,40 +106,41 @@ sign = set('+-')
 escapes = set('\'?\\ntrav')
 escapess = set('"?\\ntrav')
 whitespace = set('\n\t\r ')
+punctuators = set('[](){}.-+&*~!/%<>^|?:#,')
 keywords = set([
-    'auto'
-    'break'
-    'case'
-    'char'
-    'const'
-    'continue'
-    'default'
-    'do'
-    'double'
-    'else'
-    'enum'
-    'extern'
-    'float'
-    'for'
-    'goto'
-    'if'
-    'inline'
-    'int'
-    'long'
-    'register'
-    'restrict'
-    'return'
-    'short'
-    'signed'
-    'sizeof'
-    'static'
-    'struct'
-    'switch'
-    'typedef'
-    'union'
-    'unsigned'
-    'void'
-    'volatile'
+    'auto',
+    'break',
+    'case',
+    'char',
+    'const',
+    'continue',
+    'default',
+    'do',
+    'double',
+    'else',
+    'enum',
+    'extern',
+    'float',
+    'for',
+    'goto',
+    'if',
+    'inline',
+    'int',
+    'long',
+    'register',
+    'restrict',
+    'return',
+    'short',
+    'signed',
+    'sizeof',
+    'static',
+    'struct',
+    'switch',
+    'typedef',
+    'union',
+    'unsigned',
+    'void',
+    'volatile',
     'while'
 ])
 
@@ -149,110 +151,104 @@ def transit(all:set, to:int):
     paired_list = list(zip(set_list, to_list))
     return dict(paired_list)
 
-states = list(range(74))
+states = list(range(69))
 alphabet = vocab
 accepting = [
-    (5, TOKEN_DECIMAL),
-    (6, TOKEN_DELIMITER),
-    (7, TOKEN_DECIMAL),
-    (9, TOKEN_IDENTIFIER),
-    (11, TOKEN_WHITESPACE),
-    (12, TOKEN_IDENTIFIER),
-    (17, TOKEN_FLOATING),
-    (20, TOKEN_DECIMAL),
+    (5, TOKEN_DELIMITER),
+    (6, TOKEN_DECIMAL),
+    (8, TOKEN_IDENTIFIER),
+    (9, TOKEN_DECIMAL),
+    (10, TOKEN_WHITESPACE),
+    (11, TOKEN_IDENTIFIER),
+    (16, TOKEN_FLOATING),
+    (19, TOKEN_DECIMAL),
     (21, TOKEN_DECIMAL),
-    (24, TOKEN_DECIMAL),
-    (27, TOKEN_DECIMAL),
-    (28, TOKEN_IDENTIFIER),
-    (29, TOKEN_IDENTIFIER),
-    (30, TOKEN_FLOATING),
-    (34, TOKEN_WHITESPACE),
-    (35, TOKEN_STRINGLIT),
-    (39, TOKEN_CHARLIT),
+    (22, TOKEN_DECIMAL),
+    (24, TOKEN_IDENTIFIER),
+    (25, TOKEN_IDENTIFIER),
+    (26, TOKEN_FLOATING),
+    (30, TOKEN_WHITESPACE),
+    (31, TOKEN_STRINGLIT),
+    (35, TOKEN_CHARLIT),
+    (40, TOKEN_FLOATING),
+    (41, TOKEN_FLOATING),
+    (42, TOKEN_FLOATING),
     (44, TOKEN_FLOATING),
     (45, TOKEN_FLOATING),
-    (46, TOKEN_FLOATING),
-    (48, TOKEN_FLOATING),
-    (49, TOKEN_FLOATING),
-    (50, TOKEN_COMMENT),
+    (46, TOKEN_COMMENT),
+    (50, TOKEN_DECIMAL),
+    (51, TOKEN_DECIMAL),
+    (52, TOKEN_DECIMAL),
+    (53, TOKEN_DECIMAL),
     (54, TOKEN_DECIMAL),
     (55, TOKEN_DECIMAL),
-    (56, TOKEN_DECIMAL),
-    (57, TOKEN_DECIMAL),
-    (58, TOKEN_DECIMAL),
-    (59, TOKEN_DECIMAL),
-    (60, TOKEN_DECIMAL),
-    (61, TOKEN_FLOATING),
-    (65, TOKEN_FLOATING),
-    (67, TOKEN_COMMENT),
-    (69, TOKEN_DECIMAL),
-    (70, TOKEN_DECIMAL),
-    (71, TOKEN_DECIMAL),
-    (72, TOKEN_FLOATING),
-    (73, TOKEN_FLOATING)
+    (56, TOKEN_FLOATING),
+    (60, TOKEN_FLOATING),
+    (62, TOKEN_COMMENT),
+    (64, TOKEN_DECIMAL),
+    (65, TOKEN_DECIMAL),
+    (66, TOKEN_DECIMAL),
+    (67, TOKEN_FLOATING),
+    (68, TOKEN_PUNCTUATOR)
 ]
 tfunc = {
-    0: {'"': 1, "'": 2, '.': 3, '/': 4, '0': 5, ';': 6, **transit(nonzero, 7), 'L': 8, '_': 9, **transit(digits, 10), **transit(whitespace, 11), **transit(letters, 12)},
-    1: {**transit(safe_string, 13), '\\': 14},
-    2: {**transit(safe_char, 15), '\\': 16},
-    3: {**transit(digits, 17)},
-    4: {'/': 18, '*': 19},
-    5: {**transit(octal, 20), 'L': 21, 'U': 22, 'X': 23, 'l': 24, 'u': 25, 'x': 26},
-    7: {'L': 21, 'U': 22, **transit(digits, 27), 'l': 24, 'u': 25},
-    8: {'"': 1, "'": 2},
-    9: {'_': 28, **transit(word, 29)},
-    10: {'.': 30, 'E': 31, **transit(digits, 32), 'e': 33},
-    11: {**transit(whitespace, 34)},
-    12: {'_': 28, **transit(word, 29)},
-    13: {'"': 35, **transit(safe_string, 36), '\\': 37},
-    14: {**transit(escapess, 38)},
-    15: {"'": 39, **transit(safe_char, 40), '\\': 41},
-    16: {**transit(escapes, 42)},
-    17: {'E': 43, 'F': 44, 'L': 45, **transit(digits, 46), 'e': 47, 'f': 48, 'l': 49},
-    18: {'\n': 50, **transit(nonl, 51)},
-    19: {**transit(nostar, 52), '*': 53},
-    20: {**transit(octal, 20), 'L': 21, 'U': 22, 'l': 24, 'u': 25},
-    21: {'L': 54, 'U': 55, 'u': 56},
-    22: {'L': 57, 'l': 58},
-    23: {**transit(hexas, 59)},
-    24: {'U': 55, 'l': 60, 'u': 56},
-    25: {'L': 57, 'l': 58},
-    26: {**transit(hexas, 59)},
-    27: {'L': 21, 'U': 22, **transit(digits, 27), 'l': 24, 'u': 25},
-    28: {'_': 28, **transit(word, 29)},
-    29: {'_': 28, **transit(word, 29)},
-    30: {'E': 43, 'F': 44, 'L': 45, **transit(digits, 17), 'e': 47, 'f': 48, 'l': 49},
-    31: {**transit(digits, 61), **transit(sign, 62)},
-    32: {'.': 30, 'E': 31, **transit(digits, 32), 'e': 33},
-    33: {**transit(digits, 61), **transit(sign, 62)},
-    34: {**transit(whitespace, 34)},
-    36: {'"': 35, **transit(safe_string, 36), '\\': 37},
-    37: {**transit(escapess, 63)},
-    38: {'"': 35, **transit(safe_string, 36), '\\': 37},
-    40: {"'": 39, **transit(safe_char, 40), '\\': 41},
-    41: {**transit(escapes, 64)},
-    42: {"'": 39, **transit(safe_char, 40), '\\': 41},
-    43: {**transit(digits, 65), **transit(sign, 66)},
-    46: {'E': 43, 'F': 44, 'L': 45, **transit(digits, 46), 'e': 47, 'f': 48, 'l': 49},
-    47: {**transit(digits, 65), **transit(sign, 66)},
-    51: {'\n': 50, **transit(nonl, 51)},
-    52: {**transit(nostar, 52), '*': 53},
-    53: {'/': 67, **transit(noslash, 68)},
-    54: {'U': 55, 'u': 56},
-    57: {'L': 69},
-    58: {'l': 70},
-    59: {'L': 21, 'U': 22, **transit(hexas, 71), 'l': 24, 'u': 25},
-    60: {'U': 55, 'u': 56},
-    61: {'F': 44, 'L': 45, **transit(digits, 72), 'f': 48, 'l': 49},
-    62: {**transit(digits, 61)},
-    63: {'"': 35, **transit(safe_string, 36), '\\': 37},
-    64: {"'": 39, **transit(safe_char, 40), '\\': 41},
-    65: {'F': 44, 'L': 45, **transit(digits, 73), 'f': 48, 'l': 49},
-    66: {**transit(digits, 65)},
-    68: {**transit(nostar, 52), '*': 53},
-    71: {'L': 21, 'U': 22, **transit(hexas, 71), 'l': 24, 'u': 25},
-    72: {'F': 44, 'L': 45, **transit(digits, 72), 'f': 48, 'l': 49},
-    73: {'F': 44, 'L': 45, **transit(digits, 73), 'f': 48, 'l': 49},
+    0: {'"': 1, "'": 2, '.': 3, '/': 4, ';': 5, **transit(nonzero, 6), 'L': 7, 
+        '_': 8, **transit(digits, 9), **transit(whitespace, 10), 
+        **transit(letters, 11), **transit(punctuators, 68)},
+    1: {**transit(safe_string, 12), '\\': 13},
+    2: {**transit(safe_char, 14), '\\': 15},
+    3: {**transit(digits, 16)},
+    4: {'/': 17, '*': 18},
+    6: {'L': 19, 'U': 20, **transit(digits, 21), 'l': 22, 'u': 23},
+    7: {'"': 1, "'": 2},
+    8: {'_': 24, **transit(word, 25)},
+    9: {'.': 26, 'E': 27, **transit(digits, 28), 'e': 29},
+    10: {**transit(whitespace, 30)},
+    11: {'_': 24, **transit(word, 25)},
+    12: {'"': 31, **transit(safe_string, 32), '\\': 33},
+    13: {**transit(escapess, 34)},
+    14: {"'": 35, **transit(safe_char, 36), '\\': 37},
+    15: {**transit(escapes, 38)},
+    16: {'E': 39, 'F': 40, 'L': 41, **transit(digits, 42), 'e': 43, 'f': 44, 'l': 45},
+    17: {'\n': 46, **transit(nonl, 47)},
+    18: {**transit(nostar, 48), '*': 49},
+    19: {'L': 50, 'U': 51, 'u': 52},
+    20: {'L': 53, 'l': 54},
+    21: {'L': 19, 'U': 20, **transit(digits, 21), 'l': 22, 'u': 23},
+    22: {'U': 51, 'l': 55, 'u': 52},
+    23: {'L': 53, 'l': 54},
+    24: {'_': 24, **transit(word, 25)},
+    25: {'_': 24, **transit(word, 25)},
+    26: {'E': 39, 'F': 40, 'L': 41, **transit(digits, 16), 'e': 43, 'f': 44, 'l': 45},
+    27: {**transit(digits, 56), **transit(sign, 57)},
+    28: {'.': 26, 'E': 27, **transit(digits, 28), 'e': 29},
+    29: {**transit(digits, 56), **transit(sign, 57)},
+    30: {**transit(whitespace, 30)},
+    32: {'"': 31, **transit(safe_string, 32), '\\': 33},
+    33: {**transit(escapess, 58)},
+    34: {'"': 31, **transit(safe_string, 32), '\\': 33},
+    36: {"'": 35, **transit(safe_char, 36), '\\': 37},
+    37: {**transit(escapes, 59)},
+    38: {"'": 35, **transit(safe_char, 36), '\\': 37},
+    39: {**transit(digits, 60), **transit(sign, 61)},
+    42: {'E': 39, 'F': 40, 'L': 41, **transit(digits, 42), 'e': 43, 'f': 44, 'l': 45},
+    43: {**transit(digits, 60), **transit(sign, 61)},
+    47: {'\n': 46, **transit(nonl, 47)},
+    48: {**transit(nostar, 48), '*': 49},
+    49: {'/': 62, **transit(noslash, 63)},
+    50: {'U': 51, 'u': 52},
+    53: {'L': 64},
+    54: {'l': 65},
+    55: {'U': 51, 'u': 52},
+    56: {'F': 40, 'L': 41, **transit(digits, 66), 'f': 44, 'l': 45},
+    57: {**transit(digits, 56)},
+    58: {'"': 31, **transit(safe_string, 32), '\\': 33},
+    59: {"'": 35, **transit(safe_char, 36), '\\': 37},
+    60: {'F': 40, 'L': 41, **transit(digits, 67), 'f': 44, 'l': 45},
+    61: {**transit(digits, 60)},
+    63: {**transit(nostar, 48), '*': 49},
+    66: {'F': 40, 'L': 41, **transit(digits, 66), 'f': 44, 'l': 45},
+    67: {'F': 40, 'L': 41, **transit(digits, 67), 'f': 44, 'l': 45}
 }
 sstate = 0
 
@@ -302,6 +298,7 @@ class PushbackBuffer():
     def __init__(self, source):
         self._deque = collections.deque()
         self._source = source
+        self._row = 0
         self.feed(next(self._source))
 
     def feed(self, iter):
@@ -309,6 +306,9 @@ class PushbackBuffer():
 
     def pushback(self, iter):
         self._deque.extendleft(reversed(iter))
+
+    def isempty(self):
+        return len(self._deque) == 0
 
     def __iter__(self):
         return self
@@ -322,6 +322,7 @@ class PushbackBuffer():
     def _tryfromsource(self):
         try:
             self.feed(next(self._source))
+            self._row = self._row + 1
             return self._deque.popleft()
         except:
             raise StopIteration()
@@ -333,8 +334,9 @@ class Scanner :
 
     class SyntaxError(Exception):
 
-        def __init__(self, pos):
-            self.pos = pos
+        def __init__(self, row, col):
+            self.col = col
+            self.row = row
 
     def __init__(self, input:iter, dfa:DFA):
         self._dfa = dfa
@@ -356,10 +358,9 @@ class Scanner :
                 self._buffer.pushback(c)
                 break
 
-        tokenval = self._dfastack.buildtoken()
-        tokval_cacheindex = self._cachetoken(tokenval)
-        tokentype = self._type4state(self._dfa.check())
-        token = (tokentype, tokval_cacheindex) if tokentype and tokenval else None
+
+
+        token = self._buildtoken()
         if not self._dfa.isaccepting():
             self._pushback_noacc_stack()
 
@@ -368,7 +369,20 @@ class Scanner :
             self._dfastack.clear()
             return token
         else:
-            raise SyntaxError()
+            if self._buffer.isempty():
+                raise EOFError()
+            else:
+                raise SyntaxError()
+
+
+    def _buildtoken(self):
+        tokenval = self._dfastack.buildtoken()
+        tokval_cacheindex = self._cachetoken(tokenval)
+        tokentype = self._type4state(self._dfa.check())
+        if tokentype == TOKEN_IDENTIFIER:
+            if tokenval in keywords:
+                tokentype = TOKEN_KEYWORD
+        return (tokentype, tokval_cacheindex) if tokentype != None and tokenval != None else None
 
     def tok2readable(self, token):
         toketype_val = token[0]
@@ -404,14 +418,47 @@ class Scanner :
             return len(self._tokenvalues) - 1
 
 
+# MAIN
 
+def parseargs():
+    if len(sys.argv) != 3:
+        print('USAGE: lexer <input file> <output file>')
+
+    infilename = sys.argv[1]
+    outfilename = sys.argv[2]
+    global ifile
+    global ofile
+
+    try:
+        ifile = open(infilename, 'r')
+    except:
+        print("Coudln't open input file")
+    try:
+        ofile = open(outfilename, 'w')
+    except:
+        print("Couldn't open output file")
+
+    
 
 acc_states = list(zip(*accepting))[0]
 dfa = DFA(states, alphabet, set(), acc_states, tfunc, sstate)
 
-f = open('in.c', 'r')
-scanner = Scanner(f, dfa)
-while (True): 
-    tok = scanner.gettoken()
-    print(scanner.tok2readable(tok))
+parseargs()
+
+scanner = Scanner(ifile, dfa)
+while(True):
+    try:
+        tok = scanner.gettoken()
+        toktype = tok[0]
+        if toktype != TOKEN_COMMENT and toktype != TOKEN_WHITESPACE:
+            ofile.write('{}\n'.format(scanner.tok2readable(tok)))
+    except EOFError:
+        print('Done scanning!')
+        break
+    # except SyntaxError:
+    #     print('error message')
+    #     break
+
+ifile.close()
+ofile.close()
         
