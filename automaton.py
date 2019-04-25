@@ -151,112 +151,27 @@ def transit(all:set, to:int):
     paired_list = list(zip(set_list, to_list))
     return dict(paired_list)
 
-states = list(range(69))
+states = list(range(11))
 alphabet = vocab
 accepting = [
-    (5, TOKEN_DELIMITER),
-    (6, TOKEN_DECIMAL),
-    (8, TOKEN_IDENTIFIER),
-    (9, TOKEN_DECIMAL),
-    (10, TOKEN_WHITESPACE),
-    (11, TOKEN_IDENTIFIER),
-    (16, TOKEN_FLOATING),
-    (19, TOKEN_DECIMAL),
-    (21, TOKEN_DECIMAL),
-    (22, TOKEN_DECIMAL),
-    (24, TOKEN_IDENTIFIER),
-    (25, TOKEN_IDENTIFIER),
-    (26, TOKEN_FLOATING),
-    (30, TOKEN_WHITESPACE),
-    (31, TOKEN_STRINGLIT),
-    (35, TOKEN_CHARLIT),
-    (40, TOKEN_FLOATING),
-    (41, TOKEN_FLOATING),
-    (42, TOKEN_FLOATING),
-    (44, TOKEN_FLOATING),
-    (45, TOKEN_FLOATING),
-    (46, TOKEN_COMMENT),
-    (50, TOKEN_DECIMAL),
-    (51, TOKEN_DECIMAL),
-    (52, TOKEN_DECIMAL),
-    (53, TOKEN_DECIMAL),
-    (54, TOKEN_DECIMAL),
-    (55, TOKEN_DECIMAL),
-    (56, TOKEN_FLOATING),
-    (60, TOKEN_FLOATING),
-    (62, TOKEN_COMMENT),
-    (64, TOKEN_DECIMAL),
-    (65, TOKEN_DECIMAL),
-    (66, TOKEN_DECIMAL),
-    (67, TOKEN_FLOATING),
-    (68, TOKEN_PUNCTUATOR)
+    (1, TOKEN_IDENTIFIER),
+    (2, TOKEN_DECIMAL),
+    (3, TOKEN_PUNCTUATOR),
+    (4, TOKEN_PUNCTUATOR),
+    (5, TOKEN_WHITESPACE),
+    (6, TOKEN_DELIMITER),
+    (10, TOKEN_COMMENT)
 ]
 tfunc = {
-    0: {'"': 1, "'": 2, '.': 3, '/': 4, ';': 5, **transit(nonzero, 6), 'L': 7, 
-        '_': 8, **transit(digits, 9), **transit(whitespace, 10), 
-        **transit(letters, 11), **transit(punctuators, 68)},
-    1: {**transit(safe_string, 12), '\\': 13},
-    2: {**transit(safe_char, 14), '\\': 15},
-    3: {**transit(digits, 16)},
-    4: {'/': 17, '*': 18},
-    6: {'L': 19, 'U': 20, **transit(digits, 21), 'l': 22, 'u': 23},
-    7: {'"': 1, "'": 2},
-    8: {'_': 24, **transit(word, 25)},
-    9: {'.': 26, 'E': 27, **transit(digits, 28), 'e': 29},
-    10: {**transit(whitespace, 30)},
-    11: {'_': 24, **transit(word, 25)},
-    12: {'"': 31, **transit(safe_string, 32), '\\': 33},
-    13: {**transit(escapess, 34)},
-    14: {"'": 35, **transit(safe_char, 36), '\\': 37},
-    15: {**transit(escapes, 38)},
-    16: {'E': 39, 'F': 40, 'L': 41, **transit(digits, 42), 'e': 43, 'f': 44, 'l': 45},
-    17: {'\n': 46, **transit(nonl, 47)},
-    18: {**transit(nostar, 48), '*': 49},
-    19: {'L': 50, 'U': 51, 'u': 52},
-    20: {'L': 53, 'l': 54},
-    21: {'L': 19, 'U': 20, **transit(digits, 21), 'l': 22, 'u': 23},
-    22: {'U': 51, 'l': 55, 'u': 52},
-    23: {'L': 53, 'l': 54},
-    24: {'_': 24, **transit(word, 25)},
-    25: {'_': 24, **transit(word, 25)},
-    26: {'E': 39, 'F': 40, 'L': 41, **transit(digits, 16), 'e': 43, 'f': 44, 'l': 45},
-    27: {**transit(digits, 56), **transit(sign, 57)},
-    28: {'.': 26, 'E': 27, **transit(digits, 28), 'e': 29},
-    29: {**transit(digits, 56), **transit(sign, 57)},
-    30: {**transit(whitespace, 30)},
-    32: {'"': 31, **transit(safe_string, 32), '\\': 33},
-    33: {**transit(escapess, 58)},
-    34: {'"': 31, **transit(safe_string, 32), '\\': 33},
-    36: {"'": 35, **transit(safe_char, 36), '\\': 37},
-    37: {**transit(escapes, 59)},
-    38: {"'": 35, **transit(safe_char, 36), '\\': 37},
-    39: {**transit(digits, 60), **transit(sign, 61)},
-    42: {'E': 39, 'F': 40, 'L': 41, **transit(digits, 42), 'e': 43, 'f': 44, 'l': 45},
-    43: {**transit(digits, 60), **transit(sign, 61)},
-    47: {'\n': 46, **transit(nonl, 47)},
-    48: {**transit(nostar, 48), '*': 49},
-    49: {'/': 62, **transit(noslash, 63)},
-    50: {'U': 51, 'u': 52},
-    53: {'L': 64},
-    54: {'l': 65},
-    55: {'U': 51, 'u': 52},
-    56: {'F': 40, 'L': 41, **transit(digits, 66), 'f': 44, 'l': 45},
-    57: {**transit(digits, 56)},
-    58: {'"': 31, **transit(safe_string, 32), '\\': 33},
-    59: {"'": 35, **transit(safe_char, 36), '\\': 37},
-    60: {'F': 40, 'L': 41, **transit(digits, 67), 'f': 44, 'l': 45},
-    61: {**transit(digits, 60)},
-    63: {**transit(nostar, 48), '*': 49},
-    66: {'F': 40, 'L': 41, **transit(digits, 66), 'f': 44, 'l': 45},
-    67: {'F': 40, 'L': 41, **transit(digits, 67), 'f': 44, 'l': 45}
+   0: {**transit(letters, 1), **transit(digits, 2), '/': 3, **transit(whitespace, 5), ';': 6, **transit(set('+*()={}<>=&^#|'), 4)},
+   1: {**transit(word, 1)},
+   2: {**transit(digits, 2)},
+   3: {'*': 8},
+   5: {**transit(whitespace, 5)},
+   8: {**transit(nostar, 8), '*': 9},
+   9: {**transit(noslash, 8), '/': 10}
 }
 sstate = 0
-
-def state2token(state): 
-    acc_states = list(zip(*accepting))[0]
-    acc_tokens = list(zip(*accepting))[1]
-    state_index = acc_states.index(state)
-    return acc_tokens[state_index]
 
 
 class DFAHistStack:
