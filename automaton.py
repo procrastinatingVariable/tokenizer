@@ -10,6 +10,7 @@ regexi = {
     "punctuators": r"\*=|\/=|%=|\+=|-=|<<=|>>=|&=|\^=|\|=|,|##|#|\.\.\.|\[|\]|\(|\)|\{|\}|\.|->|\+\+|--|\*|\+|-|~|\/|%|>>|<<|<=|>=|==|!=|>|<|\^|&&|\|\||\?|:|;|=|!|&|\|"
 }
 
+
 TOKEN_KEYWORD = 0
 TOKEN_IDENTIFIER = 1
 TOKEN_STRINGLIT = 2
@@ -20,6 +21,19 @@ TOKEN_FLOATING = 6
 TOKEN_WHITESPACE = 7
 TOKEN_COMMENT = 10
 TOKEN_DELIMITER = 11
+
+tokdict = {
+    TOKEN_KEYWORD: "keyword",
+    TOKEN_IDENTIFIER: "identifier",
+    TOKEN_STRINGLIT: "string literal",
+    TOKEN_CHARLIT: "char literal",
+    TOKEN_PUNCTUATOR: "punctuator",
+    TOKEN_DECIMAL: "decimal",
+    TOKEN_FLOATING: "floating",
+    TOKEN_WHITESPACE: "whitespace",
+    TOKEN_COMMENT: "comment",
+    TOKEN_DELIMITER: "delimiter"
+}
 
 
 class DFA:
@@ -91,6 +105,43 @@ sign = set('+-')
 escapes = set('\'?\\ntrav')
 escapess = set('"?\\ntrav')
 whitespace = set('\n\t\r ')
+keywords = set([
+    'auto'
+    'break'
+    'case'
+    'char'
+    'const'
+    'continue'
+    'default'
+    'do'
+    'double'
+    'else'
+    'enum'
+    'extern'
+    'float'
+    'for'
+    'goto'
+    'if'
+    'inline'
+    'int'
+    'long'
+    'register'
+    'restrict'
+    'return'
+    'short'
+    'signed'
+    'sizeof'
+    'static'
+    'struct'
+    'switch'
+    'typedef'
+    'union'
+    'unsigned'
+    'void'
+    'volatile'
+    'while'
+])
+
 
 def transit(all:set, to:int):
     set_list = list(all)
@@ -101,15 +152,17 @@ def transit(all:set, to:int):
 states = list(range(74))
 alphabet = vocab
 accepting = [
+    (5, TOKEN_DECIMAL),
     (6, TOKEN_DELIMITER),
+    (7, TOKEN_DECIMAL),
     (9, TOKEN_IDENTIFIER),
     (11, TOKEN_WHITESPACE),
     (12, TOKEN_IDENTIFIER),
     (17, TOKEN_FLOATING),
+    (20, TOKEN_DECIMAL),
     (21, TOKEN_DECIMAL),
-    (22, TOKEN_DECIMAL),
     (24, TOKEN_DECIMAL),
-    (25, TOKEN_DECIMAL),
+    (27, TOKEN_DECIMAL),
     (28, TOKEN_IDENTIFIER),
     (29, TOKEN_IDENTIFIER),
     (30, TOKEN_FLOATING),
@@ -117,41 +170,43 @@ accepting = [
     (35, TOKEN_STRINGLIT),
     (39, TOKEN_CHARLIT),
     (44, TOKEN_FLOATING),
-    (45, TOKEN_DECIMAL),
+    (45, TOKEN_FLOATING),
     (46, TOKEN_FLOATING),
     (48, TOKEN_FLOATING),
-    (49, TOKEN_DECIMAL),
+    (49, TOKEN_FLOATING),
     (50, TOKEN_COMMENT),
     (54, TOKEN_DECIMAL),
     (55, TOKEN_DECIMAL),
     (56, TOKEN_DECIMAL),
     (57, TOKEN_DECIMAL),
     (58, TOKEN_DECIMAL),
+    (59, TOKEN_DECIMAL),
     (60, TOKEN_DECIMAL),
     (61, TOKEN_FLOATING),
     (65, TOKEN_FLOATING),
     (67, TOKEN_COMMENT),
     (69, TOKEN_DECIMAL),
     (70, TOKEN_DECIMAL),
+    (71, TOKEN_DECIMAL),
     (72, TOKEN_FLOATING),
     (73, TOKEN_FLOATING)
 ]
 tfunc = {
-    0: {'"': 1, '\'': 2, '.': 3, '/': 4, '0': 5, ';': 6, **transit(nonzero, 7), 'L': 8, '_': 9, **transit(digits, 10), **transit(whitespace, 11), **transit(letters, 12)},
+    0: {'"': 1, "'": 2, '.': 3, '/': 4, '0': 5, ';': 6, **transit(nonzero, 7), 'L': 8, '_': 9, **transit(digits, 10), **transit(whitespace, 11), **transit(letters, 12)},
     1: {**transit(safe_string, 13), '\\': 14},
     2: {**transit(safe_char, 15), '\\': 16},
     3: {**transit(digits, 17)},
     4: {'/': 18, '*': 19},
     5: {**transit(octal, 20), 'L': 21, 'U': 22, 'X': 23, 'l': 24, 'u': 25, 'x': 26},
     7: {'L': 21, 'U': 22, **transit(digits, 27), 'l': 24, 'u': 25},
-    8: {'"': 1, '\'': 2},
+    8: {'"': 1, "'": 2},
     9: {'_': 28, **transit(word, 29)},
     10: {'.': 30, 'E': 31, **transit(digits, 32), 'e': 33},
     11: {**transit(whitespace, 34)},
     12: {'_': 28, **transit(word, 29)},
     13: {'"': 35, **transit(safe_string, 36), '\\': 37},
-    14: {**transit(escapes, 38)},
-    15: {'\'': 39, **transit(safe_char, 40), '\\': 41},
+    14: {**transit(escapess, 38)},
+    15: {"'": 39, **transit(safe_char, 40), '\\': 41},
     16: {**transit(escapes, 42)},
     17: {'E': 43, 'F': 44, 'L': 45, **transit(digits, 46), 'e': 47, 'f': 48, 'l': 49},
     18: {'\n': 50, **transit(nonl, 51)},
@@ -167,21 +222,22 @@ tfunc = {
     28: {'_': 28, **transit(word, 29)},
     29: {'_': 28, **transit(word, 29)},
     30: {'E': 43, 'F': 44, 'L': 45, **transit(digits, 17), 'e': 47, 'f': 48, 'l': 49},
-    31: {'digit': 61, **transit(sign, 62)},
+    31: {**transit(digits, 61), **transit(sign, 62)},
     32: {'.': 30, 'E': 31, **transit(digits, 32), 'e': 33},
+    33: {**transit(digits, 61), **transit(sign, 62)},
     34: {**transit(whitespace, 34)},
     36: {'"': 35, **transit(safe_string, 36), '\\': 37},
-    37: {**transit(escapes, 63)},
+    37: {**transit(escapess, 63)},
     38: {'"': 35, **transit(safe_string, 36), '\\': 37},
-    40: {'\'': 39, **transit(safe_char, 40), '\\': 41},
+    40: {"'": 39, **transit(safe_char, 40), '\\': 41},
     41: {**transit(escapes, 64)},
-    42: {'\'': 39, **transit(safe_char, 40), '\\': 41},
+    42: {"'": 39, **transit(safe_char, 40), '\\': 41},
     43: {**transit(digits, 65), **transit(sign, 66)},
     46: {'E': 43, 'F': 44, 'L': 45, **transit(digits, 46), 'e': 47, 'f': 48, 'l': 49},
     47: {**transit(digits, 65), **transit(sign, 66)},
     51: {'\n': 50, **transit(nonl, 51)},
-    52: {**transit(nostar, 52), '/': 67, '*': 53},
-    53: {**transit(noslash, 68), '/': 67},
+    52: {**transit(nostar, 52), '*': 53},
+    53: {'/': 67, **transit(noslash, 68)},
     54: {'U': 55, 'u': 56},
     57: {'L': 69},
     58: {'l': 70},
@@ -190,13 +246,13 @@ tfunc = {
     61: {'F': 44, 'L': 45, **transit(digits, 72), 'f': 48, 'l': 49},
     62: {**transit(digits, 61)},
     63: {'"': 35, **transit(safe_string, 36), '\\': 37},
-    64: {'\'': 39, **transit(safe_char, 40), '\\': 41},
+    64: {"'": 39, **transit(safe_char, 40), '\\': 41},
     65: {'F': 44, 'L': 45, **transit(digits, 73), 'f': 48, 'l': 49},
     66: {**transit(digits, 65)},
-    68: {'*': 53, **transit(nostar, 52)},
+    68: {**transit(nostar, 52), '*': 53},
     71: {'L': 21, 'U': 22, **transit(hexas, 71), 'l': 24, 'u': 25},
     72: {'F': 44, 'L': 45, **transit(digits, 72), 'f': 48, 'l': 49},
-    73: {'F': 44, 'L': 45, **transit(digits, 73), 'f': 48, 'l': 49}
+    73: {'F': 44, 'L': 45, **transit(digits, 73), 'f': 48, 'l': 49},
 }
 sstate = 0
 
@@ -287,6 +343,8 @@ class Scanner :
         self._dfastack = DFAHistStack()
         self._buffer = PushbackBuffer(input)
 
+        self._tokenvalues = []
+
 
     def gettoken(self):
         for c in self._buffer:
@@ -298,10 +356,11 @@ class Scanner :
                 self._buffer.pushback(c)
                 break
 
-        if self._dfa.isaccepting():
-            token = self._dfastack.buildtoken()
-        else:
-            token = self._dfastack.buildtoken()
+        tokenval = self._dfastack.buildtoken()
+        tokval_cacheindex = self._cachetoken(tokenval)
+        tokentype = self._type4state(self._dfa.check())
+        token = (tokentype, tokval_cacheindex) if tokentype and tokenval else None
+        if not self._dfa.isaccepting():
             self._pushback_noacc_stack()
 
         if token:
@@ -310,6 +369,12 @@ class Scanner :
             return token
         else:
             raise SyntaxError()
+
+    def tok2readable(self, token):
+        toketype_val = token[0]
+        tokval_cacheindex = token[1]
+
+        return (tokdict[toketype_val], self._tokenvalues[tokval_cacheindex])
 
     def _pushback_noacc_stack(self):
         stack = self._dfastack.stack()
@@ -322,6 +387,22 @@ class Scanner :
             self._dfa.setstate(i[0])
             self._dfastack.pop()
 
+    def _type4state(self, dfastate):
+        zipped = list(zip(*accepting))
+        accstates = zipped[0]
+        types = zipped[1]
+        try:
+            return types[accstates.index(dfastate)]
+        except:
+            return None
+
+    def _cachetoken(self, tokval):
+        try:
+            return self._tokenvalues.index(tokval)
+        except:
+            self._tokenvalues.append(tokval)
+            return len(self._tokenvalues) - 1
+
 
 
 
@@ -332,5 +413,5 @@ f = open('in.c', 'r')
 scanner = Scanner(f, dfa)
 while (True): 
     tok = scanner.gettoken()
-    print(tok)
+    print(scanner.tok2readable(tok))
         
