@@ -145,14 +145,9 @@ keywords = set([
 ])
 
 
-def transit(all:set, to:int):
-    set_list = list(all)
-    to_list = len(set_list) * [to]
-    paired_list = list(zip(set_list, to_list))
-    return dict(paired_list)
-
-states = list(range(11))
+states = list(range(17))
 alphabet = vocab
+
 accepting = [
     (1, TOKEN_IDENTIFIER),
     (2, TOKEN_DECIMAL),
@@ -160,17 +155,29 @@ accepting = [
     (4, TOKEN_PUNCTUATOR),
     (5, TOKEN_WHITESPACE),
     (6, TOKEN_DELIMITER),
-    (10, TOKEN_COMMENT)
+    (10, TOKEN_COMMENT),
+    (12, TOKEN_STRINGLIT),
+    (13, TOKEN_FLOATING),
+    (16, TOKEN_FLOATING)
 ]
+
 tfunc = {
-   0: {**transit(letters, 1), **transit(digits, 2), '/': 3, **transit(whitespace, 5), ';': 6, **transit(set('+*()={}<>=&^#|'), 4)},
+   0: {**transit(letters, 1), **transit(digits, 2), '/': 3, **transit(whitespace, 5), ';': 6, **transit(set('+*()={}<>=&^#|'), 4), '"': 11},
    1: {**transit(word, 1)},
-   2: {**transit(digits, 2)},
+
+   2: {**transit(digits, 2), '.': 13, **transit(set('eE'), 14)},
    3: {'*': 8},
    5: {**transit(whitespace, 5)},
    8: {**transit(nostar, 8), '*': 9},
-   9: {**transit(noslash, 8), '/': 10}
+   9: {**transit(noslash, 8), '/': 10},
+   11: {**transit(safe_string, 11), '"': 12},
+   13: {**transit(digits, 13), **transit(set('eE'), 14)},
+   14: {**transit(sign, 15), **transit(digits, 16)},
+   15: {**transit(digits, 16)},
+   16: {**transit(digits, 16)}
 }
+
+
 sstate = 0
 
 
@@ -213,7 +220,7 @@ class PushbackBuffer():
     def __init__(self, source):
         self._deque = collections.deque()
         self._source = source
-        self._row = 0
+        self._row = 1
         self.feed(next(self._source))
 
     def feed(self, iter):
@@ -247,11 +254,11 @@ class PushbackBuffer():
 
 class Scanner :
 
-    class SyntaxError(Exception):
+    class SyntaxException(Exception):
 
-        def __init__(self, row, col):
-            self.col = col
-            self.row = row
+        def __init__(self, r, c):
+            self.col = c
+            self.row = r
 
     def __init__(self, input:iter, dfa:DFA):
         self._dfa = dfa
@@ -265,16 +272,22 @@ class Scanner :
 
     def gettoken(self):
         for c in self._buffer:
+
             try:
                 self._dfa.consume(c)
                 isaccepting = self._dfa.isaccepting()
                 self._dfastack.push((self._dfa.check(), c), isaccepting)
             except:
-                self._buffer.pushback(c)
-                break
-
-
-
+                token = self._buildtoken()
+                toktype = token[0] if token else None
+                if toktype != TOKEN_COMMENT and toktype != TOKEN_WHITESPACE:
+                    self._buffer.pushback(c)
+                    break
+                else:
+                    self._buffer.pushback(c)
+                    self._dfa.reset()
+                    self._dfastack.clear()
+        
         token = self._buildtoken()
         if not self._dfa.isaccepting():
             self._pushback_noacc_stack()
@@ -287,7 +300,7 @@ class Scanner :
             if self._buffer.isempty():
                 raise EOFError()
             else:
-                raise SyntaxError()
+                raise Scanner.SyntaxException(self._buffer._row, 0)
 
 
     def _buildtoken(self):
@@ -370,9 +383,9 @@ while(True):
     except EOFError:
         print('Done scanning!')
         break
-    # except SyntaxError:
-    #     print('error message')
-    #     break
+    except Scanner.SyntaxException as e:
+        print("Syntax error on line {}".format(e.row))
+        break
 
 ifile.close()
 ofile.close()
